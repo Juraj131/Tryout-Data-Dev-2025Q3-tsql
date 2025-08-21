@@ -1,5 +1,11 @@
 -- File: 03_Create_Final_Report.sql
--- This script creates the final view that assembles all components.
+-- Creates the final comprehensive account balance report view
+-- 
+-- Key Features:
+-- - Monthly end-of-month balances for all 12 months
+-- - Special handling for accounts with "Opening balance" in 2025
+-- - Mid-year account opening logic with appropriate NULL handling
+-- - Forward-fill logic for months with no activity
 
 USE HiringTryout_TSQL;
 GO
@@ -9,7 +15,8 @@ GO
 
 CREATE VIEW vw_FinalReport AS
 WITH AccountsWith2025OpeningBalance AS (
-    -- Identify accounts that have "Opening balance" transactions in 2025
+    -- CRITICAL BUSINESS RULE: Identify accounts that have "Opening balance" transactions in 2025
+    -- These accounts IGNORE OpeningDate constraints and show balances for all months
     SELECT DISTINCT Account
     FROM dbo.AccountEntries
     WHERE [Text] = 'openingbalance' 
@@ -20,14 +27,22 @@ SELECT
     TRIM(ai.Customer) AS Customer,
     ISNULL(ob.OpeningBalance2025, 0) AS OpeningBalance2025,
     
-    -- Apply mid-year nullification ONLY for accounts that do NOT have "Opening balance" in 2025
-    -- For accounts with "Opening balance" in 2025, ignore OpeningDate constraints
+    -- MONTHLY BALANCE CALCULATION LOGIC:
+    -- Formula: OpeningBalance2025 + RunningTotal (with forward-fill)
+    -- 
+    -- Two-tier logic per month:
+    -- 1. IF account has 2025 Opening Balance → Show balance (ignore OpeningDate)
+    -- 2. IF account opened mid-year → NULL for months before opening
+    -- 3. ELSE → Normal calculation with forward-fill
+    
+    -- JANUARY
     CASE 
         WHEN acc2025.Account IS NOT NULL THEN ISNULL(ob.OpeningBalance2025, 0) + ISNULL(mb.RunningTotal_Jan, 0)
         WHEN YEAR(ai.OpeningDate) > 2025 OR (YEAR(ai.OpeningDate) = 2025 AND 1 < MONTH(ai.OpeningDate)) THEN NULL 
         ELSE ISNULL(ob.OpeningBalance2025, 0) + ISNULL(mb.RunningTotal_Jan, 0) 
     END AS BalanceEndOf_Jan,
     
+    -- FEBRUARY (forward-fills from January if no February activity)
     CASE 
         WHEN acc2025.Account IS NOT NULL THEN ISNULL(ob.OpeningBalance2025, 0) + ISNULL(COALESCE(mb.RunningTotal_Feb, mb.RunningTotal_Jan), 0)
         WHEN YEAR(ai.OpeningDate) > 2025 OR (YEAR(ai.OpeningDate) = 2025 AND 2 < MONTH(ai.OpeningDate)) THEN NULL 
