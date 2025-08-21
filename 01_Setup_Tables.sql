@@ -2,7 +2,7 @@
 -- This script creates and populates the necessary tables.
 -- It is designed to be re-runnable by dropping existing tables first.
 
-USE HiringTryout_TSQL; -- <<< MAKE SURE TO CREATE THIS DATABASE FIRST
+USE HiringTryout_TSQL;
 GO
 
 -- Drop existing tables to ensure a clean start

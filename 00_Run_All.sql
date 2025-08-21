@@ -37,7 +37,7 @@ BEGIN
     BEGIN
         PRINT '✅ Database and views are ready!';
         PRINT 'Sample data from final report:';
-        SELECT TOP 3 Account, Customer, OpeningBalance2025, BalanceEndOf_Jan, SumTransactionsYTD 
+        SELECT TOP 4 Account, Customer, OpeningBalance2025, BalanceEndOf_Jan, SumTransactionsYTD 
         FROM vw_FinalReport 
         ORDER BY Account;
     END
